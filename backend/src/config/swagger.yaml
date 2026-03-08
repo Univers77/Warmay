@@ -1,0 +1,197 @@
+openapi: 3.0.0
+info:
+  title: WARMAY Backend API
+  description: API para el protocolo descentralizado de salud materna WARMAY.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Servidor de Desarrollo Local
+
+tags:
+  - name: World ID
+    description: Operaciones relacionadas con la integración de World ID.
+  - name: Claim Flow
+    description: Operaciones para iniciar el flujo de subsidio con Chainlink CRE.
+  - name: Emergency
+    description: Operaciones para el botón de pánico y alertas de emergencia.
+  - name: AI Chat
+    description: Operaciones para el chat de consejería con IA.
+
+paths:
+  /worldid/rp-signature:
+    post:
+      tags:
+        - World ID
+      summary: Generar Firma World ID
+      description: Genera una firma necesaria para la validación de World ID.
+      responses:
+        200:
+          description: Firma generada exitosamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sig:
+                    type: string
+                    description: La firma generada.
+                  nonce:
+                    type: string
+                    description: El nonce utilizado.
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: Fecha y hora de creación de la firma.
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: Fecha y hora de expiración de la firma.
+                  action:
+                    type: string
+                    description: La acción para la que se generó la firma.
+                    example: warmay-claim
+
+  /claim:
+    post:
+      tags:
+        - Claim Flow
+      summary: Iniciar Flujo de Subsidio
+      description: Recibe el payload del frontend y lo prepara para la inyección en Chainlink CRE.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - beneficiary
+                - idkitResponse
+              properties:
+                beneficiary:
+                  type: string
+                  description: Dirección de la billetera del beneficiario.
+                  example: "0xWalletAddress"
+                idkitResponse:
+                  type: object
+                  description: Objeto de respuesta completo de World ID.
+                  example:
+                    merkle_root: "0x..."
+                    nullifier_hash: "0x..."
+                    proof: "0x..."
+      responses:
+        200:
+          description: Flujo de subsidio iniciado exitosamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  cre_payload:
+                    type: object
+                    properties:
+                      rp_id:
+                        type: string
+                        example: "rp_xxxxxxxxxxxxxxxxxxxxxx"
+                      idkitResponse:
+                        type: object
+                      beneficiary:
+                        type: string
+                        example: "0xWalletAddress"
+                      timestamp:
+                        type: string
+                        format: date-time
+
+  /emergency:
+    post:
+      tags:
+        - Emergency
+      summary: Botón de Pánico / Emergencia
+      description: Simula el envío de SMS de emergencia y una alerta a un hospital cercano.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lat
+                - lng
+                - symptom
+                - contacts
+              properties:
+                lat:
+                  type: number
+                  format: float
+                  example: 12.345
+                lng:
+                  type: number
+                  format: float
+                  example: 67.890
+                symptom:
+                  type: string
+                  example: "Sangrado abundante"
+                contacts:
+                  type: array
+                  items:
+                    type: string
+                  example: ["+59170012345", "+59170054321"]
+      responses:
+        200:
+          description: Alerta de emergencia enviada exitosamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alertId:
+                    type: string
+                    format: uuid
+                    example: "uuid-generado-aleatoriamente"
+                  status:
+                    type: string
+                    example: "dispatched"
+                  estimatedResponseTime:
+                    type: string
+                    example: "5 mins"
+
+  /chat:
+    post:
+      tags:
+        - AI Chat
+      summary: Chat de Consejería IA
+      description: Proxy para un servicio de IA que ofrece consejería. Detecta síntomas de riesgo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  description: Mensaje del usuario para la IA.
+                  example: "Me siento un poco mal, tengo un leve sangrado."
+                language:
+                  type: string
+                  enum: ["es", "qu", "ay"]
+                  default: "es"
+                  description: Idioma del mensaje (Español, Quechua o Aymara).
+      responses:
+        200:
+          description: Respuesta del chat IA.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    description: La respuesta generada por la IA.
+                  riskDetected:
+                    type: boolean
+                    description: Indica si se detectó un síntoma de riesgo.
